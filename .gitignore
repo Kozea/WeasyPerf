@@ -1,0 +1,4 @@
+.eggs
+.venv
+WeasyPerf.egg-info
+samples/*/*.pdf
