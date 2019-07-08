@@ -57,7 +57,11 @@ for sample in args.sample:
     for version in args.version:
         print(f'* Rendering {sample} with WeasyPrint {version}')
 
-        run((pip, 'install', '--upgrade', f'weasyprint=={version}'))
+        if version.startswith('file://'):
+            run((pip, 'install', '--force', version[7:]))
+            version = 'file'
+        else:
+            run((pip, 'install', '--force', f'weasyprint=={version}'))
         run((
             python, '-m', 'mprof', 'run', '-o', path / f'mprof-{version}.dat',
             python, '-m', 'weasyprint',
