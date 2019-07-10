@@ -25,6 +25,11 @@ pip = temp / 'bin' / 'pip'
 python = temp / 'bin' / 'python'
 current = pathlib.Path(__file__).parent
 
+samples = args.sample or sorted(
+    (path.name for path in (current / 'samples').iterdir()))
+versions = args.version or sorted(
+    (path.name for path in (current / 'versions').iterdir()), reverse=True)
+
 run = functools.partial(subprocess.run, capture_output=True)
 
 venv.create(temp, with_pip=True)
@@ -32,7 +37,7 @@ run((pip, 'install', '--upgrade', 'pip'))
 run((pip, 'install', '--upgrade', 'setuptools'))
 run((pip, 'install', 'memory_profiler'))
 
-for sample in args.sample:
+for sample in samples:
     path = current / 'samples' / sample
 
     config = pygal.Config()
@@ -54,14 +59,24 @@ for sample in args.sample:
     for data_file in path.glob('*.dat'):
         data_file.unlink()
 
-    for version in args.version:
-        print(f'* Rendering {sample} with WeasyPrint {version}')
+    for version in versions:
+        if sample == 'json' and version < '43':
+            # This sample is broken with older versions
+            continue
 
+        print(f'* Installing WeasyPrint {version}')
         if version.startswith('file://'):
             run((pip, 'install', '--force', version[7:]))
             version = 'file'
         else:
-            run((pip, 'install', '--force', f'weasyprint=={version}'))
+            requirements = current / 'versions' / version
+            if requirements.exists():
+                print('  (using fixed requirements)')
+                run((pip, 'install', '--force', '-r', requirements))
+            else:
+                run((pip, 'install', '--force', f'weasyprint=={version}'))
+
+        print(f'* Rendering {sample} with WeasyPrint {version}')
         run((
             python, '-m', 'mprof', 'run', '-o', path / f'mprof-{version}.dat',
             python, '-m', 'weasyprint',

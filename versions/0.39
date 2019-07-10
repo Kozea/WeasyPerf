@@ -1,0 +1,9 @@
+weasyprint==0.39
+lxml==3.8.0
+html5lib==0.999999999
+tinycss2==0.5
+cssselect==1.0.1
+cffi==1.10.0
+cairocffi==0.8.0
+Pyphen==0.9.4
+cairosvg==2.0.3
