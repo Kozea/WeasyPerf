@@ -1,7 +1,7 @@
 weasyprint==0.33
 lxml==3.6.4
 html5lib==0.999999999
-tinycss==0.3
+tinycss==0.4
 cssselect==1.0.0
 cffi==1.9.1
 cairocffi==0.7.2
