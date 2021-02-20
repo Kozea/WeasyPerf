@@ -2,6 +2,7 @@
 
 import argparse
 import functools
+import os.path
 import pathlib
 import subprocess
 import tempfile
@@ -55,6 +56,10 @@ for sample in samples:
     config.title = f'Time for "{sample}"'
     config.x_title = 'Time (seconds)'
     time_graph = pygal.HorizontalBar(config)
+    config = pygal.Config()
+    config.title = f'PDF size for "{sample}"'
+    config.x_title = 'Size (kilobytes)'
+    size_graph = pygal.HorizontalBar(config)
 
     for data_file in path.glob('*.dat'):
         data_file.unlink()
@@ -80,7 +85,7 @@ for sample in samples:
         run((
             python, '-m', 'mprof', 'run', '-o', path / f'mprof-{version}.dat',
             python, '-m', 'weasyprint',
-            path / f'{sample}.html', path / f'{sample}.pdf',
+            path / f'{sample}.html', path / f'{sample}-{version}.pdf',
         ))
 
         lines = [
@@ -94,7 +99,11 @@ for sample in samples:
         mem_graph.add(f'{version}', max(
             float(line[1]) for line in lines if line[0] == 'MEM'))
         time_graph.add(f'{version}', float(lines[-1][2]) - timestamp)
+        size_graph.add(
+            f'{version}',
+            os.path.getsize(path / f'{sample}-{version}.pdf') / 1000)
 
     (path / 'xy_graph.svg').write_bytes(xy_graph.render())
     (path / 'mem_graph.svg').write_bytes(mem_graph.render())
     (path / 'time_graph.svg').write_bytes(time_graph.render())
+    (path / 'size_graph.svg').write_bytes(size_graph.render())
