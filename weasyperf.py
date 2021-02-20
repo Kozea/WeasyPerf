@@ -31,7 +31,8 @@ samples = args.sample or sorted(
 versions = args.version or sorted(
     (path.name for path in (current / 'versions').iterdir()), reverse=True)
 
-run = functools.partial(subprocess.run, capture_output=True)
+run = functools.partial(
+    subprocess.run, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 venv.create(temp, with_pip=True)
 run((pip, 'install', '--upgrade', 'pip'))
