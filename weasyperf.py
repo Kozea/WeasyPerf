@@ -72,22 +72,33 @@ for sample in samples:
 
         print(f'* Installing WeasyPrint {version}')
         if version.startswith('file://'):
-            run((pip, 'install', '--force', version[7:]))
+            result = run((pip, 'install', '--force', version[7:]))
             version = 'file'
         else:
             requirements = current / 'versions' / version
             if requirements.exists():
                 print('  (using fixed requirements)')
-                run((pip, 'install', '--force', '-r', requirements))
+                result = run((pip, 'install', '--force', '-r', requirements))
             else:
-                run((pip, 'install', '--force', f'weasyprint=={version}'))
+                result = run(
+                    (pip, 'install', '--force', f'weasyprint=={version}'))
+        if result.returncode != 0:
+            print('  !!! Installation failed, reinstalling without dependencies !!!')
+            result = run(
+                (pip, 'install', '--force', f'weasyprint=={version}'))
+            if result.returncode != 0:
+                print('  !!! Reinstallation failed, aborting !!!')
+                break
 
         print(f'* Rendering {sample} with WeasyPrint {version}')
-        run((
+        result = run((
             python, '-m', 'mprof', 'run', '-o', path / f'mprof-{version}.dat',
             python, '-m', 'weasyprint',
             path / f'{sample}.html', path / f'{sample}-{version}.pdf',
         ))
+        if result.returncode != 0:
+            print('  !!! Rendering failed !!!')
+            break
 
         lines = [
             line.split() for line in
