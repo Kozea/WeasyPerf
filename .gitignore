@@ -3,3 +3,4 @@
 WeasyPerf.egg-info
 samples/*/*.pdf
 samples/*/*.dat
+venvs/

@@ -5,11 +5,9 @@ import functools
 import os.path
 import pathlib
 import subprocess
-import tempfile
 import venv
 
 import pygal
-
 
 parser = argparse.ArgumentParser(
     prog='weasyperf', description='Test WeasyPrint performance.')
@@ -19,12 +17,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-print('* Generating virtual environment')
-
-temp = pathlib.Path(tempfile.gettempdir()) / 'weasyperf'
-pip = temp / 'bin' / 'pip'
-python = temp / 'bin' / 'python'
 current = pathlib.Path(__file__).parent
+venvs = current / 'venvs'
 
 samples = args.sample or sorted(
     (path.name for path in (current / 'samples').iterdir()))
@@ -33,11 +27,6 @@ versions = args.version or sorted(
 
 run = functools.partial(
     subprocess.run, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-venv.create(temp, with_pip=True)
-run((pip, 'install', '--upgrade', 'pip'))
-run((pip, 'install', '--upgrade', 'setuptools'))
-run((pip, 'install', 'memory_profiler'))
 
 for sample in samples:
     path = current / 'samples' / sample
@@ -70,25 +59,42 @@ for sample in samples:
             # This sample is broken with older versions
             continue
 
-        print(f'* Installing WeasyPrint {version}')
         if version.startswith('file://'):
-            result = run((pip, 'install', '--force', version[7:]))
+            file_folder = version[7:]
             version = 'file'
-        else:
-            requirements = current / 'versions' / version
-            if requirements.exists():
-                print('  (using fixed requirements)')
-                result = run((pip, 'install', '--force', '-r', requirements))
+
+        version_path = venvs / version
+        pip = version_path / 'bin' / 'pip'
+        python = version_path / 'bin' / 'python'
+        if not pip.exists():
+            print(f'* Generating virtual environment for WeasyPrint {version}')
+            version_path.mkdir(parents=True, exist_ok=True)
+            venv.create(version_path, with_pip=True)
+            run((pip, 'install', '--upgrade', 'pip'))
+            run((pip, 'install', '--upgrade', 'setuptools'))
+            run((pip, 'install', 'memory_profiler'))
+
+            print(f'* Installing WeasyPrint {version}')
+            if version == 'file':
+                result = run((pip, 'install', '--force', file_folder))
             else:
+                requirements = current / 'versions' / version
+                if requirements.exists():
+                    print('  (using fixed requirements)')
+                    result = run(
+                        (pip, 'install', '--force', '-r', requirements))
+                else:
+                    result = run(
+                        (pip, 'install', '--force', f'weasyprint=={version}'))
+            if result.returncode != 0:
+                print(
+                    '  !!! Installation failed, '
+                    'reinstalling without dependencies !!!')
                 result = run(
                     (pip, 'install', '--force', f'weasyprint=={version}'))
-        if result.returncode != 0:
-            print('  !!! Installation failed, reinstalling without dependencies !!!')
-            result = run(
-                (pip, 'install', '--force', f'weasyprint=={version}'))
-            if result.returncode != 0:
-                print('  !!! Reinstallation failed, aborting !!!')
-                break
+                if result.returncode != 0:
+                    print('  !!! Reinstallation failed, aborting !!!')
+                    break
 
         print(f'* Rendering {sample} with WeasyPrint {version}')
         result = run((
