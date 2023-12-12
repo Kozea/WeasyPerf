@@ -1,0 +1,9 @@
+weasyprint==59.0
+cffi==1.15.1
+html5lib==1.1
+tinycss2==1.2.1
+cssselect2==0.7.0
+pyphen==0.14.0
+pillow==9.4.0
+fonttools[woff,lxml]==4.39.3
+pydyf==0.6.0
